@@ -1,18 +1,42 @@
-/* Reset some default styles for better consistency */
-body, html {
+  /* Reset some default styles for better consistency */
+  body, html {
     margin: 0;
     padding: 0;
     font-family: Arial, sans-serif;
 }
-.navbar-1{
+
+.navbar {
     background-color: black;
-    padding:0;
-    border-bottom: 1px solid rgba(230,174,49);
-}
-.navbar-brand h3{
-    font-family: Italianno;
+    padding: 0;
+    border-bottom: 1px solid rgba(230, 174, 49);
 }
 
+.navbar-brand h3 {
+    font-family: 'Italianno', cursive;
+}
+
+.nav-link {
+    color: white;
+    font-family: 'Italianno', cursive;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+/* Change the color of the navigation links on hover */
+.navbar-nav .nav-item a:hover {
+    color: rgba(230, 174, 49);
+}
+
+/* Custom CSS to change the background color of the dropdown menu */
+.dropdown-menu {
+    background-color: white; /* Replace with your desired background color */
+}
+
+/* Custom CSS to change the text color of links in the dropdown menu */
+.dropdown-menu a {
+    color: rgba(230, 174, 49); /* Replace with your desired text color */
+    font-family: 'Italianno', cursive;
+}
 /* Center the content vertically and horizontally */
 .container-1 {
     display: flex;
@@ -94,41 +118,39 @@ a {
     text-align: center;
     margin: 20px 0;
     position: relative;
+    color: white;
+    margin: 20px 0;
+    font-weight: bold;
 }
 
-.divider::before, .divider::after {
-    content: '';
-    display: block;
-    border-top: 1px solid #ccc;
-    width: 50%;
-    position: absolute;
-    top: 50%;
-}
 
-.divider::before {
-    left: 0;
-}
-
-.divider::after {
-    right: 0;
-}
-
-/* "Continue with Google" button */
+/* Style the "Continue with Google" button */
 .google-button {
-    display: block;
-    text-align: center;
     background-color: #fff; /* Change to your preferred button color */
     color: #007bff;
     border: 1px solid #007bff;
     padding: 10px 20px;
     border-radius: 5px;
     cursor: pointer;
+    text-decoration: none;
+    display: block;
+    text-align: center;
+    width: 100%;
+    margin-top: 10px;
 }
 
 .google-button:hover {
     background-color: #007bff;
     color: #fff;
 }
+
+/* Style the Google icon */
+.google-button img {
+    width: 24px;
+    height: 24px;
+    margin-right: 10px;
+}
+
 
 /* Right side of the login form */
 .right-side {

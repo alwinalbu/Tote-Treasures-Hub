@@ -75,7 +75,7 @@ module.exports={
                     pass: "ceyv ctlk khzq tkrg"
                 },
                 secure: true,
-            });
+            } );
     
             // OTP schema creating and how much time it should be valid
             const duration = 60 * 1000; // 60 seconds
@@ -99,13 +99,13 @@ module.exports={
             const createdOTPRecord = await newOTP.save();
             console.log("Saved OTP Record:", createdOTPRecord);
     
-            // Mail data
-            const message = "Enter This OTP to Continue For The Verification";
+            // creating the Mail data
+            const message = "Enter This OTP To Continue For The Verification";
             const mailData = {
                 from: "totetreasureshub@gmail.com",
                 to: Email,
                 subject: "OTP FROM TOTE TREASURES HUB",
-                html: `<p>${message}</p> <p style="color: tomato; font-size: 25px; letter-spacing: 2px;"><b>${otpToBeSent}</b></p><p>This Code <b>expires in ${duration / 1000} seconds</b>.</p>`,
+                html: `<p>${message}</p> <p style="color: tomato; font-size: 25px; letter-spacing: 2px;"><b>${otpToBeSent}</b></p><p>This Code <b>expires in <b>${duration / 1000} seconds</b>.</p>`,
             }
     
             // Sending mail data
@@ -117,7 +117,7 @@ module.exports={
             });
     
             // Redirect to the page after success
-            req.flash("success", "OTP Successfully ");
+            req.flash("success", "Successfully Send OTP ");
             res.redirect("/emailVerification");
     
         } catch (error) {

@@ -1,5 +1,7 @@
-
 const User = require('../models/userSchema')
+const Category=require('../models/categorySchema')
+const Product=require('../models/productSchema')
+const Brand=require('../models/brandSchema')
 const bcrypt = require('bcrypt')
 const nodemailer = require('nodemailer');
 const jwt = require("jsonwebtoken");
@@ -9,130 +11,207 @@ const otpFunctions = require('../utility/otpFunctions')
 const OTP = require('../models/otpSchema')
 const session = require('express-session');
 module.exports = {
-    initial: (req, res) => {
+    initial: async (req, res) => {
         try {
-            res.render('./user/landingpage');
+            const categories = await Category.find();
+            const products = await Product.find({ Display: "Active" })
+            res.render("user/landingpage", {user:'',products,categories});
         } catch (error) {
             console.log(error);
         }
-
     },
-    home: (req, res) => {
+
+    
+    home: async (req, res) => {
         try {
-            res.render("user/homepage", {user: req.session.user});
+            const categories = await Category.find();
+            const products = await Product.find({ Display: "Active" })
+            res.render("user/homepage", {user: req.session.user,products,categories});
         } catch (error) {
             console.log(error);
         }
     },
 
     login: (req, res) => {
-        res.render('./user/login', { error: req.session.error });
+        res.render('./user/login', { error: req.session.error,user: req.session.user });
     },
 
-    userlogin: async (req, res) => {
+    userLogin: async (req, res) => {
         try {
+            // Extract email and password from req.body
+            const email = req.body.Email;
+            const password = req.body.Password;
+    
             // Attempt to find a user in the database based on the provided email.
-            const user = await User.findOne({ Email: req.body.Email });
+            const user = await User.findOne({ Email: email });
+    
+            console.log('login email', email);
+            console.log('user:', user);
+    
+            // Check if the user exists and their status is "Active" before proceeding.
+            if (user && user.Status === "Active") {
+                // Compare the provided password with the stored hashed password.
+                const passwordMatch = await bcrypt.compare(password, user.Password);
+    
+                console.log('Password:', password);
+                console.log('Password Match:', passwordMatch);
 
-            // Check if the user's status is "Active" before proceeding.
-            if (user.Status === "Active") {
-                // Check if a user was found with the provided email.
-                if (user) {
-                    // Compare the provided password with the stored hashed password.
-                    const passwordMatch = await bcrypt.compare(
-                        req.body.Password,
-                        user.Password
+                // If the passwords match, create a JSON Web Token (JWT).
+                if (passwordMatch) {
+                    const accessToken = jwt.sign(
+                        { user: user._id },
+                        process.env.ACCESS_TOKEN_SECRET,
+                        { expiresIn: '1h' } // Set the expiration time as needed
                     );
-
-                    // If the passwords match, create a JSON Web Token (JWT).
-                    if (passwordMatch) {
-                        const accessToken = jwt.sign(
-                            { user: user._id },
-                            process.env.ACCESS_TOKEN_SECRET,
-                            { expiresIn: 60 * 60 }
-                        );
-
-                        // Set the JWT as a cookie.
-                        res.cookie("userJwt", accessToken, { maxAge: 60 * 1000 * 60 });
-
-                        // Store user information in the session.
-                        req.session.user = user;
-
-                        // Redirect to the user's homepage.
-                        res.redirect("/homepage");
-                    } else {
-                        // If passwords don't match, show an error and redirect to the login page.
-                        req.flash("error", "invalid username or password");
-                        res.redirect("/login");
-                    }
+    
+                    // Set the JWT as a cookie.
+                    res.cookie('userJwt', accessToken, { maxAge: 60 * 60 * 1000 });
+    
+                    // Store user information in the session.
+                    req.session.user = user;
+    
+                    // Redirect to the user's homepage.
+                    return res.redirect('/homepage');
                 } else {
-                    // If no user is found, show an error and redirect to the login page.
-                    req.flash("error", "invalid username or password");
-                    res.redirect("/login");
+                    // If passwords don't match, show an error and redirect to the login page.
+                    req.flash('error', 'Invalid username or password');
+                    return res.redirect('/login');
                 }
             } else {
-                // If the user's status is not "Active," show an error and redirect to the login page.
-                req.flash("error", "You have been banned");
-                res.redirect("/login");
+                // If no user is found or user's status is not "Active," show an error and redirect to the login page.
+                req.flash('error', 'Blocked Invalid username or password');
+                return res.redirect('/login');
             }
         } catch (error) {
             // Handle any errors that occur during the process.
-            console.log(error);
-            req.flash("error", "invalid username or password");
-            res.redirect("/login");
+            console.error(error);
+            req.flash('error', 'An error occurred during login');
+            res.redirect('/login');
         }
     },
 
     signup: (req, res) => {
-        // if (req.session.auth) {
-        //     res.redirect("/dashboard");
-        // } else {
-        //     res.render("user/signup", { err: "" });
-        // }
-        res.render("user/signup", { err: "" });
-    },
+        const error = req.flash('error'); // Get the error message from flash (if it exists)
+        res.render("user/signup", { err: error, user:'' });
+      },
+      
+    // postUserSignup: async (req, res) => {
+    //     try {
+    //         const saltRounds = 10;
+    //         const salt = await bcrypt.genSalt(saltRounds);
+    
+    //         const username = req.body.Username; // Capture the user's username
+    //         const password = req.body.Password;
+    //         const confirmPassword = req.body.confirmPassword;
+    
+    //         if (password && confirmPassword) {
+    //             // Hash the password using bcrypt
+    //             const hashedPassword = await bcrypt.hash(password, salt);
+    //             const hashedConfirmPassword = await bcrypt.hash(confirmPassword, salt);
+    
+    //             // Log the hashed password and hashedConfirmPassword
+    //             console.log('Hashed Password:', hashedPassword);
+    //             console.log('Hashed Confirm Password:', hashedConfirmPassword);
+    
+    //             const email = req.body.Email;
+    
+    //             const emailRegex = /^([a-zA-Z0-9\._]+)@([a-zA-Z0-9]+)\.([a-z]+)(\.[a-z]+)?/;
+    
+    //             // Testing the email
+    //             const isValidEmail = emailRegex.test(email);
+    
+    //             if (isValidEmail) {
+    //                 req.session.user = {
+    //                     Username: username,
+    //                     Email: email,
+    //                     Password:hashedPassword
+    //                 };
+    //                 const existingUser = await User.findOne({ Email: email });
+    
+    //                 if (existingUser) {
+    //                     req.flash("error", "Email already exists");
+    //                     console.log("Email already there");
+    //                     res.redirect("/signup");
+    //                 } else {
+    //                     otpToBeSent = otpFunctions.generateOTP();
+    //                     const result = otpFunctions.sendOTP(req, res, email, otpToBeSent);
+    //                 }
+    //             } else {
+    //                 req.flash("error", "Invalid email address");
+    //                 res.redirect('/signup');
+    //                 console.log("Invalid email address");
+    //             }
+    
+    //             // Compare the hashed password and hashedConfirmPassword
+    //             if (hashedPassword === hashedConfirmPassword) {
+    //                 console.log('Password and ConfirmPassword match.');
+    //             } else {
+    //                 console.log('Password and ConfirmPassword do not match.');
+    //             }
+    //         } else {
+    //             req.flash("error", "Passwords are missing");
+    //             res.redirect("/signup");
+    //         }
+    //     } catch (error) {
+    //         console.error(error);
+    //         req.flash("error", "An error occurred during signup.");
+    //         res.redirect("/signup");
+    //     }
+    // }, 
 
     postUserSignup: async (req, res) => {
         try {
-            const salt = await bcrypt.genSalt();
-            req.body.Password = await bcrypt.hash(req.body.Password, salt);
-            req.body.confirmPassword = await bcrypt.hash(req.body.confirmPassword, salt);
-
-            const user = req.body;
-            const Email = req.body.Email;
-
-            const emailRegex = /^([a-zA-Z0-9\._]+)@([a-zA-Z0-9]+).([a-z]+)(.[a-z]+)?$/;
-
-            //testing the eamil
-
-            const isValidemail = emailRegex.test(Email);
-
-            if (req.body.Password === req.body.confirmPassword) {
-                if (isValidemail) {
-                    req.session.user = req.body
-                    const existingUser = await User.findOne({ Email: req.body.Email });
-                    if (existingUser) {
-                        req.flash("error", "Email already Exist");
-                        console.log("email already there")
-                        res.redirect("/signup");
-                    } else {
-                        otpToBeSent = otpFunctions.generateOTP();
-                        const result = otpFunctions.sendOTP(req, res, Email, otpToBeSent);
-                    }
-                } else {
-                    res.redirect('/signup');
-                    console.log("invalid email address")
-                }
+          const saltRounds = 10;
+          const salt = await bcrypt.genSalt(saltRounds);
+      
+          const username = req.body.Username;
+          const password = req.body.Password;
+          const confirmPassword = req.body.confirmPassword;
+      
+          if (password && confirmPassword) {
+            const hashedPassword = await bcrypt.hash(password, salt);
+            const hashedConfirmPassword = await bcrypt.hash(confirmPassword, salt);
+      
+            // Log the hashed password and hashedConfirmPassword
+            console.log('Hashed Password:', hashedPassword);
+            console.log('Hashed Confirm Password:', hashedConfirmPassword);
+      
+            const email = req.body.Email;
+      
+            req.session.user = {
+              Username: username,
+              Email: email,
+              Password: hashedPassword
+            };
+      
+            const existingUser = await User.findOne({ Email: email });
+      
+            if (existingUser) {
+              req.flash("error", "Email already exists");
+              console.log("Email already exists");
+              res.redirect("/signup");
             } else {
-                req.flash("error", "Password Doesn't Match");
-                res.redirect("/signup");
+              otpToBeSent = otpFunctions.generateOTP();
+              const result = otpFunctions.sendOTP(req, res, email, otpToBeSent);
             }
-
-        } catch (error) {
-            console.error(error);
+            
+            // Compare the hashed password and hashedConfirmPassword
+            if (hashedPassword === hashedConfirmPassword) {
+              console.log('Password and ConfirmPassword match.');
+            } else {
+              console.log('Password and ConfirmPassword do not match.');
+            }
+          } else {
+            req.flash("error", "Passwords are missing");
             res.redirect("/signup");
+          }
+        } catch (error) {
+          console.error(error);
+          req.flash("error", "An error occurred during signup.");
+          res.redirect("/signup");
         }
-    },
+      },
+      
 
     getemailVerification: async (req, res) => {
         try {
@@ -149,7 +228,7 @@ module.exports = {
                         console.error(err);
                     });
             }, 60000);
-            res.render("user/emailVerification", { messages: req.flash() });
+            res.render("user/emailVerification", { messages: req.flash(),user:'' });
         } catch (error) {
             console.log(error);
             res.redirect("/signup");
@@ -248,9 +327,7 @@ module.exports = {
 
     forgotpassword: (req, res) => {
         res.render("user/forgotPassword", {
-            messages: req.flash(),
-
-        });
+            messages: req.flash(),user: req.session.user});
     },
     postforgotpassword: async (req, res) => {
         try {
@@ -302,7 +379,7 @@ module.exports = {
                         console.error(err);
                     });
             }, 60000);
-            res.render("user/otpVerification", { messages: req.flash() });
+            res.render("user/otpVerification", { messages: req.flash(),user: req.session.user });
         } catch (error) {
             console.log(error);
             res.redirect("/login");
@@ -362,7 +439,7 @@ module.exports = {
     },
 
     getCreateNewPassword: async (req, res) => {
-        res.render('user/changePassword')
+        res.render('user/changePassword',{ messages: req.flash(),user: req.session.user })
     },
 
     postCreateNewPassword: async (req, res) => {
@@ -393,6 +470,45 @@ module.exports = {
             res.redirect("/login");
         }
     },
+
+    getproductViewDetailspage: async (req, res) => {
+        const _id = req.params.id; // Use req.params.id
+        const categories = await Category.find();
+        const brands = await Brand.find();
+        const product = await Product.findOne({ _id }).populate('Category BrandName');
+        console.log(product);
+    
+        res.render("./user/productViewDetailspage", {
+          product: product,
+          categories,
+          brands,
+          user: req.session.user,
+        });
+    },
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  
     getUserLogout: (req, res) => {
         req.session.user = false;
